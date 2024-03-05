@@ -124,7 +124,7 @@ namespace financing_api.Services.TransactionsService
         public static decimal GetTotalIncome(List<RecurringDto> incomes)
         {
             decimal totalIncome = 0;
-            git
+
             foreach (var income in incomes)
             {
                 totalIncome = totalIncome + income.Amount;
