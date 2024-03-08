@@ -91,7 +91,7 @@ namespace financing_api.Data
                 if (user == null)
                 {
                     response.Success = false;
-                    response.Message = "Invalid email or password - this is to test that it works";
+                    response.Message = "Invalid email or password";
                 }
                 else if (!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
                 {

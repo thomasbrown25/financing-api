@@ -31,7 +31,6 @@ configBuilder.AddAzureAppConfiguration(connectionString);
 
 
 
-// You can put your plaid secrets here. But really you can put them
 // configBuilder.AddYamlFile("secrets.yaml", optional: true);
 
 var configuration = configBuilder.Build();
