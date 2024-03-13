@@ -38,7 +38,6 @@ var configuration = configBuilder.Build();
 // Add Going.Plaid services
 services.AddHttpClient();
 
-//builder.Configuration.AddYamlFile("secrets.yaml", optional: true);
 services.Configure<PlaidCredentials>(builder.Configuration.GetSection(PlaidOptions.SectionKey));
 services.Configure<PlaidOptions>(builder.Configuration.GetSection(PlaidOptions.SectionKey));
 services.AddSingleton<PlaidClient>();

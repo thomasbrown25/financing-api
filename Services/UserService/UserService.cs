@@ -47,6 +47,8 @@ namespace financing_api.Data
                 if (await UserExists(user.Email))
                 {
                     response.Message = "A user with that email already exists.";
+                    response.Success = false;
+                    _logging.LogTrace("Register user failed: A user with that email already exists.");
                     return response;
                 }
 
