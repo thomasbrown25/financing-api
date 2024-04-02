@@ -1,23 +1,26 @@
 global using financing_api.Models;
+using Going.Plaid;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Principal;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Swashbuckle.AspNetCore.Filters;
 using financing_api.Data;
 using financing_api.Services.PlaidService;
 using financing_api.Services.TransactionsService;
 using financing_api.Services.AccountService;
-using Going.Plaid;
 using financing_api.Shared;
 using financing_api.PlaidInterface;
 using financing_api.Services.CategoryService;
 using financing_api.DAL;
 using financing_api.Logger;
 using financing_api.DbLogger;
-using Microsoft.Extensions.Configuration.Yaml;
+using Newtonsoft.Json;
+using financing_api.Services.HealthService;
 
 var builder = WebApplication.CreateBuilder(args);
 var configBuilder = new ConfigurationBuilder();
@@ -26,8 +29,8 @@ var allowMyOrigins = "AllowMyOrigins";
 
 builder.Logging.ClearProviders();
 
-var connectionString = builder.Configuration.GetConnectionString("AzureAppConfiguration");
-configBuilder.AddAzureAppConfiguration(connectionString);
+var azureConnectionString = builder.Configuration.GetConnectionString("AzureAppConfiguration");
+configBuilder.AddAzureAppConfiguration(azureConnectionString);
 
 
 
@@ -35,7 +38,8 @@ configBuilder.AddAzureAppConfiguration(connectionString);
 
 var configuration = configBuilder.Build();
 
-// Add Going.Plaid services
+
+// Services
 services.AddHttpClient();
 
 services.Configure<PlaidCredentials>(builder.Configuration.GetSection(PlaidOptions.SectionKey));
@@ -92,6 +96,9 @@ services.AddScoped<IPlaidApi, PlaidApi>();
 services.AddTransient<ILogging, Logging>();
 services.AddTransient<TransactionDAL>();
 
+
+
+
 // Authentication
 services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -129,6 +136,11 @@ services.AddCors(options =>
     );
 });
 
+// Health check to database
+services.AddHealthChecks()
+.AddCheck<HealthService>("HealthCheck", failureStatus: HealthStatus.Degraded)
+.AddDbContextCheck<DataContext>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -137,6 +149,31 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResultStatusCodes =
+    {
+        [HealthStatus.Healthy] = StatusCodes.Status200OK,
+        [HealthStatus.Degraded] = StatusCodes.Status500InternalServerError,
+        [HealthStatus.Unhealthy] = StatusCodes.Status500InternalServerError
+    },
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var response = new HealthCheckResponse
+        {
+            Status = report.Status.ToString(),
+            HealthChecks = report.Entries.Select(x => new IndividualHealthCheckResponse
+            {
+                Component = x.Key,
+                Status = x.Value.Status.ToString()
+            }),
+            HealthCheckDuration = report.TotalDuration
+        };
+        await context.Response.WriteAsync(JsonConvert.SerializeObject(response));
+    }
+});
 
 app.UseCors(allowMyOrigins);
 

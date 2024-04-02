@@ -10,34 +10,23 @@ using Going.Plaid.Errors;
 
 namespace financing_api.Services.TransactionsService
 {
-    public class TransactionsService : ITransactionsService
+    public class TransactionsService(
+        DataContext context,
+        IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor,
+        IMapper mapper,
+        IPlaidApi plaidApi,
+        TransactionDAL transactionDAL,
+        ILogging logging
+        ) : ITransactionsService
     {
-        private readonly DataContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IMapper _mapper;
-        private readonly IPlaidApi _plaidApi;
-        private readonly TransactionDAL _transactionDal;
-        private readonly ILogging _logging;
-
-        public TransactionsService(
-            DataContext context,
-            IConfiguration configuration,
-            IHttpContextAccessor httpContextAccessor,
-            IMapper mapper,
-            IPlaidApi plaidApi,
-            TransactionDAL transactionDAL,
-            ILogging logging
-        )
-        {
-            _context = context;
-            _configuration = configuration;
-            _httpContextAccessor = httpContextAccessor;
-            _mapper = mapper;
-            _plaidApi = plaidApi;
-            _transactionDal = transactionDAL;
-            _logging = logging;
-        }
+        private readonly DataContext _context = context;
+        private readonly IConfiguration _configuration = configuration;
+        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+        private readonly IMapper _mapper = mapper;
+        private readonly IPlaidApi _plaidApi = plaidApi;
+        private readonly TransactionDAL _transactionDal = transactionDAL;
+        private readonly ILogging _logging = logging;
 
         public async Task<ServiceResponse<GetTransactionsDto>> GetTransactions()
         {

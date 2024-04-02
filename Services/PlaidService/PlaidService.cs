@@ -5,29 +5,21 @@ using financing_api.DbLogger;
 
 namespace financing_api.Services.PlaidService
 {
-    public class PlaidService : IPlaidService
+    public class PlaidService(
+        DataContext context,
+        IHttpContextAccessor httpContextAccessor,
+        IPlaidApi plaidApi,
+        ILogging logging
+        ) : IPlaidService
     {
-        private readonly DataContext _context;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IPlaidApi _plaidApi;
-        private readonly ILogging _logging;
-
-        public PlaidService(
-            DataContext context,
-            IHttpContextAccessor httpContextAccessor,
-            IPlaidApi plaidApi,
-            ILogging logging
-        )
-        {
-            _context = context;
-            _httpContextAccessor = httpContextAccessor;
-            _plaidApi = plaidApi;
-            _logging = logging;
-        }
+        private readonly DataContext _context = context;
+        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+        private readonly IPlaidApi _plaidApi = plaidApi;
+        private readonly ILogging _logging = logging;
 
         public async Task<ServiceResponse<string>> CreateLinkToken()
         {
-            ServiceResponse<string> response = new ServiceResponse<string>();
+            ServiceResponse<string> response = new();
 
             try
             {
@@ -62,7 +54,7 @@ namespace financing_api.Services.PlaidService
 
         public async Task<ServiceResponse<string>> UpdateLinkToken()
         {
-            ServiceResponse<string> response = new ServiceResponse<string>();
+            ServiceResponse<string> response = new();
 
             try
             {
@@ -96,7 +88,7 @@ namespace financing_api.Services.PlaidService
 
         public async Task<ServiceResponse<string>> PublicTokenExchange(string publicToken)
         {
-            ServiceResponse<string> response = new ServiceResponse<string>();
+            ServiceResponse<string> response = new();
 
             try
             {

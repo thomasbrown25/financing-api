@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using financing_api.Dtos.Category;
 using financing_api.Services.CategoryService;
 using Microsoft.AspNetCore.Authorization;
@@ -11,14 +7,9 @@ namespace financing_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CategoryController : ControllerBase
+    public class CategoryController(ICategoryService categoryService) : ControllerBase
     {
-        private readonly ICategoryService _categoryService;
-
-        public CategoryController(ICategoryService categoryService)
-        {
-            _categoryService = categoryService;
-        }
+        private readonly ICategoryService _categoryService = categoryService;
 
         [Authorize]
         [HttpGet("")]

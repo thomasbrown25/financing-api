@@ -13,14 +13,9 @@ namespace financing_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class TransactionsController : ControllerBase
+    public class TransactionsController(ITransactionsService transactionService) : ControllerBase
     {
-        private readonly ITransactionsService _transactionsService;
-
-        public TransactionsController(ITransactionsService transactionService)
-        {
-            _transactionsService = transactionService;
-        }
+        private readonly ITransactionsService _transactionsService = transactionService;
 
         [Authorize]
         [HttpGet("")]
