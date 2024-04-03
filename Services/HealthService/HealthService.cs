@@ -11,8 +11,7 @@ namespace financing_api.Services.HealthService
 
         public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
         {
-            if (Convert.ToBoolean(_configuration["Logging.TraceLogs.Enabled"]))
-                _logging.LogTrace("Health Check Succeeded");
+            _logging.LogTrace("Health Check Succeeded");
 
             return HealthCheckResult.Healthy("A healthy result.");
         }
