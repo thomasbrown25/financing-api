@@ -143,13 +143,6 @@ services.AddHealthChecks()
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResultStatusCodes =
@@ -174,6 +167,13 @@ app.MapHealthChecks("/health", new HealthCheckOptions
         await context.Response.WriteAsync(JsonConvert.SerializeObject(response));
     }
 });
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseCors(allowMyOrigins);
 
