@@ -1,57 +1,65 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using financing_api.Data;
 using financing_api.DbLogger;
 
 namespace financing_api.Logger
 {
-    public class Logging : ILogging
+    public class Logging(DataContext context, IConfiguration configuration) : ILogging
     {
-        private readonly DataContext _context;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        public Logging(DataContext context,
-            IHttpContextAccessor httpContextAccessor)
-        {
-            _context = context;
-            _httpContextAccessor = httpContextAccessor;
-        }
+        private readonly DataContext _context = context;
+        private readonly IConfiguration _configuration = configuration;
 
         public void LogTrace(string message)
         {
-            LoggingTrace log = new LoggingTrace();
+            bool.TryParse(_configuration["Logging.TraceLogs.Enabled"], out bool loggingEnabled);
 
-            log.Message = message;
+            if (loggingEnabled)
+            {
+                LoggingTrace log = new()
+                {
+                    Message = message
+                };
 
-            _context.LoggingTrace.Add(log);
-            _context.SaveChanges();
+                _context.LoggingTrace.Add(log);
+                _context.SaveChanges();
+            }
         }
 
         public void LogException(Exception? exception)
         {
-            LoggingException log = new LoggingException();
+            bool.TryParse(_configuration["Logging.ExceptionLogs.Enabled"], out bool loggingEnabled);
 
-            log.ExceptionMessage = exception.Message;
-            log.ExceptionStackTrace = exception.StackTrace;
-            log.InnerExceptionMessage = exception.InnerException?.Message;
-            log.InnerExceptionStackTrace = exception.InnerException?.StackTrace;
+            if (loggingEnabled)
+            {
+                LoggingException log = new()
+                {
+                    ExceptionMessage = exception?.Message,
+                    ExceptionStackTrace = exception?.StackTrace,
+                    InnerExceptionMessage = exception?.InnerException?.Message,
+                    InnerExceptionStackTrace = exception?.InnerException?.StackTrace
+                };
 
-            _context.LoggingException.Add(log);
-            _context.SaveChanges();
+                _context.LoggingException.Add(log);
+                _context.SaveChanges();
+            }
         }
 
         public void LogDataExchange(string messageSource, string messageTarget, string methodCall, string messagePayload)
         {
-            LoggingDataExchange log = new LoggingDataExchange();
+            bool.TryParse(_configuration["Logging.DataExchangeLogs.Enabled"], out bool loggingEnabled);
 
-            log.MessageSource = messageSource;
-            log.MessageTarget = messageTarget;
-            log.MethodCall = methodCall;
-            log.MessagePayload = messagePayload;
+            if (loggingEnabled)
+            {
+                LoggingDataExchange log = new()
+                {
+                    MessageSource = messageSource,
+                    MessageTarget = messageTarget,
+                    MethodCall = methodCall,
+                    MessagePayload = messagePayload
+                };
 
-            _context.LoggingDataExchange.Add(log);
-            _context.SaveChanges();
-
+                _context.LoggingDataExchange.Add(log);
+                _context.SaveChanges();
+            }
         }
     }
 }

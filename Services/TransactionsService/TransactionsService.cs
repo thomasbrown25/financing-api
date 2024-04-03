@@ -6,7 +6,6 @@ using financing_api.Utils;
 using financing_api.PlaidInterface;
 using financing_api.DAL;
 using financing_api.DbLogger;
-using Going.Plaid.Errors;
 
 namespace financing_api.Services.TransactionsService
 {
@@ -43,7 +42,7 @@ namespace financing_api.Services.TransactionsService
 
                 if (result is null || result.Error is not null)
                 {
-                    throw new Exception(result?.Error.ErrorMessage);
+                    throw new Exception(result?.Error?.ErrorMessage);
                 }
 
                 _context.Transactions.RemoveRange(_context.Transactions.Where(x => x.UserId == user.Id));
