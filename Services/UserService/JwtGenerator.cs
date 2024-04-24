@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Threading.Tasks;
 using Microsoft.IdentityModel.Tokens;
 
 namespace financing_api.Services.UserService
@@ -26,10 +22,10 @@ namespace financing_api.Services.UserService
             {
                 Audience = "myApi",
                 Issuer = "UserService",
-                Subject = new ClaimsIdentity(new Claim[]
-                {
+                Subject = new ClaimsIdentity(
+                [
                             new Claim(ClaimTypes.Sid, userEmail.ToString())
-                }),
+                ]),
                 Expires = DateTime.UtcNow.AddMinutes(60),
                 SigningCredentials = new SigningCredentials(_key, SecurityAlgorithms.RsaSha256)
             };

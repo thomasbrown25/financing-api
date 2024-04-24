@@ -112,7 +112,7 @@ namespace financing_api.Data
             {
                 _logging.LogException(ex);
                 response.Success = false;
-                response.Message = ex.Message;
+                response.Message = "Sorry we ran into an issue. Please contact support for assistance.";
             }
             return response;
         }
