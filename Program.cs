@@ -31,6 +31,8 @@ builder.Logging.ClearProviders();
 
 var azureConnectionString = builder.Configuration.GetConnectionString("AzureAppConfiguration") ?? System.Environment.GetEnvironmentVariable("AzureAppConfiguration");
 
+Console.WriteLine("azure app configuration: " + azureConnectionString);
+
 configBuilder.AddAzureAppConfiguration(azureConnectionString);
 
 
