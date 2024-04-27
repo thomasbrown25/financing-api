@@ -6,6 +6,8 @@
 appsettings.Development.json
 appsettings.development.json
 
+.vscode
+
 # User-specific files
 *.rsuser
 *.suo
@@ -453,5 +455,4 @@ $RECYCLE.BIN/
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
-!.vscode/launch.json
 !.vscode/extensions.json
