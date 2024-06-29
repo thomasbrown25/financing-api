@@ -26,7 +26,7 @@ var allowMyOrigins = "AllowMyOrigins";
 
 builder.Logging.ClearProviders();
 
-var connectionString = builder.Configuration.GetConnectionString("AzureAppConfiguration");
+var connectionString = System.Environment.GetEnvironmentVariable("AzureAppConfiguration");
 configBuilder.AddAzureAppConfiguration(connectionString);
 
 
