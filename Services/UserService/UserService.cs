@@ -200,7 +200,9 @@ namespace financing_api.Data
                 {
                     dbSettings = await _context.UserSettings
                                        .FirstOrDefaultAsync(s => s.UserId == user.Id);
-                    response.Data = _mapper.Map<SettingsDto>(dbSettings);
+
+                    if (dbSettings is not null)
+                        response.Data = _mapper.Map<SettingsDto>(dbSettings);
                 }
             }
             catch (Exception ex)
