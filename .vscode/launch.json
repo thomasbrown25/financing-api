@@ -22,7 +22,7 @@
             },
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
-                "AzureAppConfiguration": "Endpoint=https://financing-api-configs.azconfig.io;Id=GY7h-l4-s0:q/fWVEhyDj2NGi27622K;Secret=DVJDrGSpbMI0o7di/9FteiwHuUhQHhmZgrMJdhaO7jQ="
+                "AzureAppConfiguration": "Endpoint=https://financing-config-prod.azconfig.io;Id=rZ/D;Secret=VbKwlNMkGr6uLWbwe8YkIDkpjfYsArwPJ9SlsRKhJLYWNX6nmZ7UJQQJ99AGAC1i4TkJ0deGAAACAZACzfM8"
             },
             "sourceFileMap": {
                 "/Views": "${workspaceFolder}/Views"

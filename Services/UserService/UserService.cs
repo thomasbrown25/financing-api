@@ -291,7 +291,7 @@ namespace financing_api.Data
 
             SymmetricSecurityKey key = new SymmetricSecurityKey(
                 System.Text.Encoding.UTF8.GetBytes(
-                    _configuration.GetSection("AppSettings:Key").Value
+                    _configuration["Key"]
                 )
             );
 
@@ -303,7 +303,7 @@ namespace financing_api.Data
             var token = new JwtSecurityToken(
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(
-                    Double.Parse(_configuration["AppSettings:JWTTokenExpiration"])
+                    Double.Parse(_configuration["JWTTokenExpiration"])
                 ),
                 signingCredentials: creds
             );

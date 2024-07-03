@@ -18,16 +18,12 @@ namespace financing_api.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
-        private readonly JwtGenerator _jwtGenerator;
 
         public UserController(
-            IUserService userService,
-            IConfiguration configuration,
-            IOptionsSnapshot<UserSettings> options
+            IUserService userService
         )
         {
             _userService = userService;
-            _jwtGenerator = new JwtGenerator(configuration["JwtPrivateSigningKey"]);
         }
 
         [HttpPost("register")]

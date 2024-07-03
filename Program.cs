@@ -30,11 +30,7 @@ var allowMyOrigins = "AllowMyOrigins";
 builder.Logging.ClearProviders();
 
 var connectionString = System.Environment.GetEnvironmentVariable("AzureAppConfiguration");
-configBuilder.AddAzureAppConfiguration(connectionString);
-
-
-
-// configBuilder.AddYamlFile("secrets.yaml", optional: true);
+configBuilder.AddAzureAppConfiguration("connectionString");
 
 var configuration = configBuilder.Build();
 
@@ -108,7 +104,7 @@ services
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
-                System.Text.Encoding.UTF8.GetBytes(configuration["AppSettings:Key"])
+                System.Text.Encoding.UTF8.GetBytes(configuration["Key"])
             ),
             ValidateIssuer = false,
             ValidateAudience = false
