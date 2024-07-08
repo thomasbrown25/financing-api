@@ -16,11 +16,15 @@ using financing_api.Services.AccountService;
 using financing_api.Shared;
 using financing_api.PlaidInterface;
 using financing_api.Services.CategoryService;
-using financing_api.DAL;
 using financing_api.Logger;
 using financing_api.DbLogger;
 using Newtonsoft.Json;
 using financing_api.Services.HealthService;
+using financing_api.Services.UserService;
+using financing_api.DataAccess.AccountDA;
+using financing_api.DataAccess.PlaidDA;
+using financing_api.DataAccess.TransactionDA;
+using financing_api.DataAccess.UserDA;
 
 var builder = WebApplication.CreateBuilder(args);
 var configBuilder = new ConfigurationBuilder();
@@ -30,7 +34,7 @@ var allowMyOrigins = "AllowMyOrigins";
 builder.Logging.ClearProviders();
 
 var connectionString = System.Environment.GetEnvironmentVariable("AzureAppConfiguration");
-configBuilder.AddAzureAppConfiguration("connectionString");
+configBuilder.AddAzureAppConfiguration(connectionString);
 
 var configuration = configBuilder.Build();
 
@@ -82,15 +86,21 @@ services.AddSwaggerGen(c =>
 });
 services.AddSwaggerGenNewtonsoftSupport();
 services.AddAutoMapper(typeof(Program).Assembly);
+
+// Services
 services.AddScoped<IUserService, UserService>();
 services.AddScoped<IPlaidService, PlaidService>();
 services.AddScoped<ITransactionsService, TransactionsService>();
 services.AddScoped<IAccountService, AccountService>();
 services.AddScoped<ICategoryService, CategoryService>();
-services.AddScoped<IPlaidApi, PlaidApi>();
+
+// Data Access
+services.AddScoped<IUserDataAccess, UserDataAccess>();
+services.AddScoped<IAccountDataAccess, AccountDataAccess>();
+services.AddScoped<IPlaidDataAccess, PlaidDataAccess>();
+services.AddScoped<ITransactionDataAccess, TransactionDataAccess>();
 
 services.AddTransient<ILogging, Logging>();
-services.AddTransient<TransactionDAL>();
 
 
 

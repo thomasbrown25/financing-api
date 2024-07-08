@@ -1,35 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using financing_api.Data;
 using AutoMapper;
-using financing_api.Utils;
-using financing_api.PlaidInterface;
 using financing_api.Dtos.Category;
 using financing_api.DbLogger;
+using financing_api.DataAccess.UserDA;
+using financing_api.DataAccess.PlaidDA;
 
 namespace financing_api.Services.CategoryService
 {
-    public class CategoryService : ICategoryService
+    public class CategoryService(
+        DataContext context,
+        IHttpContextAccessor httpContextAccessor,
+        IMapper mapper,
+        ILogging logging,
+        IUserDataAccess userDataAccess,
+        IPlaidDataAccess plaidDataAccess) : ICategoryService
     {
-        private readonly DataContext _context;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IMapper _mapper;
-        private readonly IPlaidApi _plaidApi;
-        private readonly ILogging _logging;
-
-        public CategoryService(
-            DataContext context,
-            IHttpContextAccessor httpContextAccessor,
-            IMapper mapper,
-            IPlaidApi plaidApi,
-            ILogging logging
-        )
-        {
-            _context = context;
-            _httpContextAccessor = httpContextAccessor;
-            _mapper = mapper;
-            _plaidApi = plaidApi;
-            _logging = logging;
-        }
+        private readonly DataContext _context = context;
+        private readonly IUserDataAccess _userDataAccess = userDataAccess;
+        private readonly IPlaidDataAccess _plaidDataAccess = plaidDataAccess;
+        private readonly IMapper _mapper = mapper;
+        private readonly ILogging _logging = logging;
 
         public async Task<ServiceResponse<GetCategoryDto>> GetCategories()
         {
@@ -95,9 +86,9 @@ namespace financing_api.Services.CategoryService
                 response.Data = new GetCategoryDto();
                 response.Data.Categories = new List<CategoryDto>();
 
-                var user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
 
-                var result = await _plaidApi.GetTransactionsRequest(user);
+                var result = await _plaidDataAccess.GetTransactionsRequest(user);
 
                 foreach (var transaction in result.Transactions)
                 {
@@ -107,9 +98,10 @@ namespace financing_api.Services.CategoryService
 
                     if (dbCategory is null)
                     {
-                        var categoryDto = new CategoryDto();
-
-                        categoryDto.Name = category;
+                        var categoryDto = new CategoryDto
+                        {
+                            Name = category
+                        };
 
                         response.Data.Categories.Add(categoryDto);
                         Category categoryDb = _mapper.Map<Category>(categoryDto);

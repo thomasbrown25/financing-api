@@ -27,17 +27,9 @@ namespace financing_api.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<ServiceResponse<LoadUserDto>>> Register(UserRegisterDto request)
+        public async Task<ActionResult<ServiceResponse<LoadUserDto>>> Register(RegisterUserDto request)
         {
-            var response = await _userService.Register(
-                new User
-                {
-                    FirstName = request.Firstname,
-                    LastName = request.Lastname,
-                    Email = request.Email
-                },
-                request.Password
-            );
+            var response = await _userService.Register(request);
 
             if (!response.Success)
             {

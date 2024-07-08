@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using financing_api.Data;
 using financing_api.Dtos.Transaction;
+using financing_api.Dtos.User;
 using Going.Plaid.Entity;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,7 @@ namespace financing_api.Services.TransactionsService
 {
     public static class Helper
     {
-        public static RecurringDto MapPlaidStream(RecurringDto recurring, TransactionStream stream, User user, EType type)
+        public static RecurringDto MapPlaidStream(RecurringDto recurring, TransactionStream stream, LoadUserDto user, EType type)
         {
             try
             {
@@ -25,7 +26,6 @@ namespace financing_api.Services.TransactionsService
                 recurring.MerchantName = stream.MerchantName;
                 recurring.FirstDate = stream.FirstDate.ToDateTime(TimeOnly.Parse("00:00:00"));
                 recurring.LastDate = stream.LastDate.ToDateTime(TimeOnly.Parse("00:00:00"));
-                recurring.Frequency = stream.Frequency.ToString();
                 recurring.Amount = type == EType.Income ? stream.LastAmount.Amount * -1 : stream.LastAmount.Amount;
                 recurring.IsActive = stream.IsActive;
                 recurring.Status = stream.Status.ToString();
@@ -33,24 +33,6 @@ namespace financing_api.Services.TransactionsService
                 if (stream.Category.Count > 1 && stream.Category[1].ToLower() == "internal account transfer")
                 {
                     recurring.InternalTransfer = true;
-                }
-
-                // Add days to the last date to have an accurate due date... :refactor later
-                if (stream.Frequency.ToString().ToLower() == "monthly")
-                {
-                    recurring.DueDate = stream.LastDate.ToDateTime(TimeOnly.Parse("00:00:00")).AddMonths(1);
-                }
-                else if (stream.Frequency.ToString().ToLower() == "biweekly" || stream.Frequency.ToString().ToLower() == "semimonthly")
-                {
-                    recurring.DueDate = stream.LastDate.ToDateTime(TimeOnly.Parse("00:00:00")).AddDays(14);
-                }
-                else if (stream.Frequency.ToString().ToLower() == "weekly")
-                {
-                    recurring.DueDate = stream.LastDate.ToDateTime(TimeOnly.Parse("00:00:00")).AddDays(7);
-                }
-                else
-                {
-                    recurring.DueDate = stream.LastDate.ToDateTime(TimeOnly.Parse("00:00:00")).AddMonths(1);
                 }
 
                 return recurring;
@@ -62,7 +44,7 @@ namespace financing_api.Services.TransactionsService
             }
         }
 
-        public static TransactionDto MapPlaidStream(TransactionDto transactionDto, Going.Plaid.Entity.Transaction transaction, User user)
+        public static TransactionDto MapTransactions(TransactionDto transactionDto, Going.Plaid.Entity.Transaction transaction, LoadUserDto user)
         {
             try
             {
@@ -85,7 +67,7 @@ namespace financing_api.Services.TransactionsService
             }
         }
 
-        public static async void AddStreams(IReadOnlyList<TransactionStream> inflowStreams, DataContext context, IMapper mapper, User user, EType expense, List<RecurringDto> dbExpenses)
+        public static async void AddStreams(IReadOnlyList<TransactionStream> inflowStreams, DataContext context, IMapper mapper, LoadUserDto user, EType expense, List<RecurringDto> dbExpenses)
         {
             foreach (var inflowStream in inflowStreams)
             {

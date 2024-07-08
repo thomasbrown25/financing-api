@@ -1,43 +1,22 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using AutoMapper;
-using financing_api.Data;
 using financing_api.Dtos.Account;
-using financing_api.Utils;
-using Going.Plaid;
-using financing_api.PlaidInterface;
 using financing_api.DbLogger;
+using financing_api.DataAccess.UserDA;
+using financing_api.DataAccess.PlaidDA;
+using financing_api.DataAccess.AccountDA;
 
 namespace financing_api.Services.AccountService
 {
-    public class AccountService : IAccountService
+    public class AccountService(
+        IUserDataAccess userDataAccess,
+        IPlaidDataAccess plaidDataAccess,
+        IAccountDataAccess accountDataAccess,
+        ILogging logging
+        ) : IAccountService
     {
-        private readonly DataContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IMapper _mapper;
-        private readonly IPlaidApi _plaidApi;
-        private readonly ILogging _logging;
-
-        public AccountService(
-            DataContext context,
-            IConfiguration configuration,
-            IHttpContextAccessor httpContextAccessor,
-            IMapper mapper,
-            IPlaidApi plaidApi,
-            ILogging logging
-        )
-        {
-            _context = context;
-            _configuration = configuration;
-            _httpContextAccessor = httpContextAccessor;
-            _mapper = mapper;
-            _plaidApi = plaidApi;
-            _logging = logging;
-        }
+        private readonly IUserDataAccess _userDataAccess = userDataAccess;
+        private readonly IPlaidDataAccess _plaidDataAccess = plaidDataAccess;
+        private readonly IAccountDataAccess _accountDataAccess = accountDataAccess;
+        private readonly ILogging _logging = logging;
 
         public async Task<ServiceResponse<GetAccountsDto>> GetAccountsBalance()
         {
@@ -46,9 +25,9 @@ namespace financing_api.Services.AccountService
             {
                 response.Data = new GetAccountsDto();
 
-                var user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
 
-                var result = await _plaidApi.GetAccountsRequest(user);
+                var result = await _plaidDataAccess.GetAccountsRequest(user);
 
                 decimal? cashAmount = 0;
                 decimal? creditAmount = 0;
@@ -56,7 +35,7 @@ namespace financing_api.Services.AccountService
 
                 foreach (var account in result.Accounts)
                 {
-                    var accountDto = Helper.MapPlaidStream(new AccountDto(), account, user);
+                    var accountDto = Helper.MapPlaidStream(new AccountDto(), account, user.Id);
 
                     switch (accountDto.Type)
                     {
@@ -100,17 +79,14 @@ namespace financing_api.Services.AccountService
             var response = new ServiceResponse<GetAccountsDto>();
             try
             {
-                response.Data = new GetAccountsDto();
-                response.Data.Account = new AccountDto();
+                response.Data = new GetAccountsDto
+                {
+                    Account = new AccountDto()
+                };
 
-                var user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
 
-                var dbAccount = await _context.Accounts
-                                .Where(a => a.UserId == user.Id)
-                                .Where(a => a.AccountId == accountId)
-                                .FirstOrDefaultAsync();
-
-                response.Data.Account = _mapper.Map<AccountDto>(dbAccount);
+                response.Data.Account = await _accountDataAccess.GetAccount(user, accountId);
             }
             catch (Exception ex)
             {
@@ -128,24 +104,22 @@ namespace financing_api.Services.AccountService
             var response = new ServiceResponse<GetAccountsDto>();
             try
             {
-                response.Data = new GetAccountsDto();
-                response.Data.Accounts = new List<AccountDto>();
+                response.Data = new GetAccountsDto
+                {
+                    Accounts = []
+                };
 
-                var user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
 
-                var accountResponse = _plaidApi.GetAccountsRequest(user);
+                var accountResponse = _plaidDataAccess.GetAccountsRequest(user);
 
                 foreach (var account in accountResponse.Result.Accounts)
                 {
-                    var dbAccount = await _context.Accounts
-                       .FirstOrDefaultAsync(a => a.AccountId == account.AccountId);
+                    var dbAccount = await _accountDataAccess.GetAccountById(account.AccountId);
 
                     if (dbAccount is null)
                     {
-                        var accountDto = Helper.MapPlaidStream(new AccountDto(), account, user);
-
-                        Account accountDb = _mapper.Map<Account>(accountDto);
-                        _context.Accounts.Add(accountDb);
+                        _accountDataAccess.AddAccount(account, user);
                     }
                     else
                     {
@@ -155,13 +129,9 @@ namespace financing_api.Services.AccountService
                     }
                 }
 
-                await _context.SaveChangesAsync();
+                await _accountDataAccess.SaveContextAsync();
 
-                var dbAccounts = await _context.Accounts
-                .Where(a => a.UserId == user.Id)
-                .ToListAsync();
-
-                response.Data.Accounts = dbAccounts.Select(a => _mapper.Map<AccountDto>(a)).ToList();
+                response.Data.Accounts = await _accountDataAccess.GetAccounts(user);
 
                 Helper.SetAccountTotals(ref response);
 
@@ -184,26 +154,15 @@ namespace financing_api.Services.AccountService
 
             try
             {
-                response.Data = new GetAccountsDto();
-                response.Data.Accounts = new List<AccountDto>();
+                response.Data = new GetAccountsDto
+                {
+                    Accounts = []
+                };
 
                 // Get user for accessToken
-                var user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
 
-                var dbAccount = await _context.Accounts
-                                .Where(a => a.UserId == user.Id)
-                                .Where(a => a.AccountId == accountId)
-                                .FirstOrDefaultAsync();
-
-                _context.Accounts.Remove(dbAccount);
-
-                await _context.SaveChangesAsync();
-
-                var dbAccounts = await _context.Accounts
-                    .Where(r => r.UserId == user.Id)
-                    .ToListAsync();
-
-                response.Data.Accounts = dbAccounts.Select(a => _mapper.Map<AccountDto>(a)).ToList();
+                response.Data.Accounts = await _accountDataAccess.DeleteAccount(user, accountId);
 
                 Helper.SetAccountTotals(ref response);
             }

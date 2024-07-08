@@ -17,7 +17,7 @@ namespace financing_api.Models
         public string? Category { get; set; }
         public string Amount { get; set; }
         public bool Pending { get; set; }
-        public DateTime Date { get; set; }
+        public DateOnly Date { get; set; }
         public DateTime CreatedDate { get; set; }
     }
 }

@@ -8,9 +8,9 @@ namespace financing_api.Services.AccountService
 {
     public static class Helper
     {
-        public static AccountDto MapPlaidStream(AccountDto accountDto, Going.Plaid.Entity.Account account, User user)
+        public static AccountDto MapPlaidStream(AccountDto accountDto, Going.Plaid.Entity.Account account, int userId)
         {
-            accountDto.UserId = user.Id;
+            accountDto.UserId = userId;
             accountDto.AccountId = account.AccountId;
             accountDto.Name = account.Name;
             accountDto.Mask = account.Mask;

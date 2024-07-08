@@ -1,50 +1,36 @@
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using AutoMapper;
+using financing_api.Data;
+using financing_api.DataAccess.AccountDA;
+using financing_api.DataAccess.TransactionDA;
+using financing_api.DataAccess.UserDA;
 using financing_api.DbLogger;
 using financing_api.Dtos.User;
 using financing_api.Dtos.UserSetting;
-using financing_api.Utils;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-namespace financing_api.Data
+namespace financing_api.Services.UserService
 {
-    public class UserService : IUserService
+    public class UserService(
+        IUserDataAccess userDataAccess,
+        IConfiguration configuration,
+        ILogging logging,
+        ITransactionDataAccess transactionDataAccess,
+        IAccountDataAccess accountDataAccess) : IUserService
     {
-        private readonly DataContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly IMapper _mapper;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly ILogging _logging;
+        private readonly IUserDataAccess _userDataAccess = userDataAccess;
+        private readonly IConfiguration _configuration = configuration;
+        private readonly ILogging _logging = logging;
+        private readonly ITransactionDataAccess _transactionDataAccess = transactionDataAccess;
+        private readonly IAccountDataAccess _accountDataAccess = accountDataAccess;
 
-        public UserService(
-            DataContext context,
-            IConfiguration configuration,
-            IMapper mapper,
-            IHttpContextAccessor httpContextAccessor,
-            ILogging logging
-        )
-        {
-            _context = context;
-            _configuration = configuration;
-            _mapper = mapper;
-            _httpContextAccessor = httpContextAccessor;
-            _logging = logging;
-        }
-
-        public async Task<ServiceResponse<LoadUserDto>> Register(User user, string password)
+        public async Task<ServiceResponse<LoadUserDto>> Register(RegisterUserDto user)
         {
             ServiceResponse<LoadUserDto> response = new();
 
             try
             {
-                if (await UserExists(user.Email))
+                if (await _userDataAccess.UserExists(user.Email))
                 {
                     response.Message = "A user with that email already exists.";
                     response.Success = false;
@@ -52,22 +38,18 @@ namespace financing_api.Data
                     return response;
                 }
 
-                CreatePasswordHash(password, out byte[] passwordHash, out byte[] passwordSalt);
+                CreatePasswordHash(user.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
                 user.PasswordHash = passwordHash;
                 user.PasswordSalt = passwordSalt;
 
-                _context.Users.Add(user);
-
-                await _context.SaveChangesAsync();
-
-                // after we save user, we create and return the jwt token
                 var token = CreateToken(user);
 
-                response.Data = new LoadUserDto();
-                response.Data = _mapper.Map<LoadUserDto>(user);
-                response.Data.JWTToken = token;
+                var loadedUser = await _userDataAccess.SaveUser(user);
 
+                response.Data = new LoadUserDto();
+                response.Data = loadedUser;
+                response.Data.JWTToken = token;
 
             }
             catch (Exception ex)
@@ -86,27 +68,20 @@ namespace financing_api.Data
 
             try
             {
-                var user = await _context.Users.FirstOrDefaultAsync(
-                    u => u.Email.ToLower().Equals(email.ToLower())
-                );
+                var user = await _userDataAccess.GetUser(email);
 
-                if (user == null)
+                var validUser = await _userDataAccess.ValidateUser(user, password);
+
+                if (validUser is null)
                 {
                     response.Success = false;
                     response.Message = "Invalid email or password";
+                    return response;
                 }
-                else if (!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
-                {
-                    response.Success = false;
-                    response.Message = "Invalid email or password";
-                }
-                else
-                {
-                    response.Data = new LoadUserDto
-                    {
-                        JWTToken = CreateToken(user)
-                    };
-                }
+
+                validUser.JWTToken = CreateToken(user);
+
+                response.Data = validUser;
             }
             catch (Exception ex)
             {
@@ -123,7 +98,7 @@ namespace financing_api.Data
 
             try
             {
-                User user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                LoadUserDto user = await _userDataAccess.GetCurrentUser();
 
                 if (user == null)
                 {
@@ -132,7 +107,7 @@ namespace financing_api.Data
                     return response;
                 }
 
-                response.Data = _mapper.Map<LoadUserDto>(user);
+                response.Data = user;
             }
             catch (Exception ex)
             {
@@ -149,28 +124,13 @@ namespace financing_api.Data
 
             try
             {
-                User user = _context.Users.FirstOrDefault(x => x.Id == userId);
+                User user = await _userDataAccess.GetUser(userId);
 
-
-                var dbTransactions = await _context.Transactions
-                                   .Where(x => x.UserId == user.Id)
-                                   .OrderByDescending(c => c.Date)
-                                   .ToListAsync();
-
-                var dbRecurrings = await _context.Recurrings
-                                .Where(x => x.UserId == user.Id)
-                                .ToListAsync();
-
-                var dbAccounts = await _context.Accounts
-                                .Where(x => x.UserId == user.Id)
-                                .ToListAsync();
-
-                _context.RemoveRange(dbTransactions);
-                _context.RemoveRange(dbRecurrings);
-                _context.RemoveRange(dbAccounts);
-                _context.Remove(user);
-
-                _context.SaveChangesAsync();
+                _transactionDataAccess.DeleteUserTransactions(user.Id);
+                _transactionDataAccess.DeleteUserRecurringTransactions(user.Id);
+                _accountDataAccess.DeleteUserAccounts(user);
+                _userDataAccess.DeleteUser(user);
+                _userDataAccess.SaveContextAsync();
 
                 response.Data = "User Deleted: " + user.FirstName;
             }
@@ -192,17 +152,16 @@ namespace financing_api.Data
 
             try
             {
-                var user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
 
-                UserSettings? dbSettings = new();
+                SettingsDto? userSettings = new();
 
                 if (user is not null)
                 {
-                    dbSettings = await _context.UserSettings
-                                       .FirstOrDefaultAsync(s => s.UserId == user.Id);
+                    userSettings = await _userDataAccess.GetUserSettings(user.Id);
 
-                    if (dbSettings is not null)
-                        response.Data = _mapper.Map<SettingsDto>(dbSettings);
+                    if (userSettings is not null)
+                        response.Data = userSettings;
                 }
             }
             catch (Exception ex)
@@ -222,16 +181,13 @@ namespace financing_api.Data
             {
                 response.Data = new SettingsDto();
 
-                var user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
 
-                var dbSettings = await _context.UserSettings
-                                   .FirstOrDefaultAsync(s => s.UserId == user.Id);
+                var userSettings = await _userDataAccess.GetUserSettings(user.Id);
 
-                _mapper.Map<SettingsDto, UserSettings>(newSettings, dbSettings);
+                _userDataAccess.SaveContextAsync();
 
-                await _context.SaveChangesAsync();
-
-                response.Data = newSettings;
+                response.Data = userSettings;
             }
             catch (Exception ex)
             {
@@ -240,23 +196,6 @@ namespace financing_api.Data
                 return response;
             }
             return response;
-        }
-
-        public async Task<bool> UserExists(string email)
-        {
-            try
-            {
-                if (await _context.Users.AnyAsync(u => u.Email.ToLower() == email.ToLower()))
-                {
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logging.LogException(ex);
-            }
-
-            return false;
         }
 
         private void CreatePasswordHash(
@@ -281,7 +220,7 @@ namespace financing_api.Data
             }
         }
 
-        private string CreateToken(User user)
+        private string CreateToken(RegisterUserDto user)
         {
             List<Claim> claims = new List<Claim>
             {
@@ -303,7 +242,7 @@ namespace financing_api.Data
             var token = new JwtSecurityToken(
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(
-                    Double.Parse(_configuration["JWTTokenExpiration"])
+                    double.Parse(_configuration["JWTTokenExpiration"])
                 ),
                 signingCredentials: creds
             );

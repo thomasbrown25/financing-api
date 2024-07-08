@@ -1,20 +1,17 @@
-using financing_api.Data;
-using financing_api.Utils;
-using financing_api.PlaidInterface;
 using financing_api.DbLogger;
+using financing_api.DataAccess.UserDA;
+using financing_api.DataAccess.PlaidDA;
 
 namespace financing_api.Services.PlaidService
 {
     public class PlaidService(
-        DataContext context,
-        IHttpContextAccessor httpContextAccessor,
-        IPlaidApi plaidApi,
+        IUserDataAccess userDataAccess,
+        IPlaidDataAccess plaidDataAccess,
         ILogging logging
         ) : IPlaidService
     {
-        private readonly DataContext _context = context;
-        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-        private readonly IPlaidApi _plaidApi = plaidApi;
+        private readonly IUserDataAccess _userDataAccess = userDataAccess;
+        private readonly IPlaidDataAccess _plaidDataAccess = plaidDataAccess;
         private readonly ILogging _logging = logging;
 
         public async Task<ServiceResponse<string>> CreateLinkToken()
@@ -24,9 +21,9 @@ namespace financing_api.Services.PlaidService
             try
             {
                 // Get current user from sql db
-                User user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
 
-                var linkResponse = _plaidApi.CreateLinkTokenRequest(user);
+                var linkResponse = _plaidDataAccess.CreateLinkTokenRequest(user);
 
                 if (linkResponse.Result.Error is not null)
                 {
@@ -59,17 +56,19 @@ namespace financing_api.Services.PlaidService
             try
             {
                 // Get current user from sql db
-                User user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
 
-                var linkResponse = _plaidApi.UpdateLinkTokenRequest(user);
+                var linkResponse = _plaidDataAccess.UpdateLinkTokenRequest(user);
 
                 if (linkResponse.Result.Error is not null)
                 {
                     Console.WriteLine(linkResponse.Result.Error.ErrorMessage);
                     response.Success = false;
-                    response.Error = new Error();
-                    response.Error.ErrorCode = linkResponse.Result.Error.ErrorCode.ToString();
-                    response.Error.ErrorMessage = linkResponse.Result.Error.ErrorMessage;
+                    response.Error = new Error
+                    {
+                        ErrorCode = linkResponse.Result.Error.ErrorCode.ToString(),
+                        ErrorMessage = linkResponse.Result.Error.ErrorMessage
+                    };
                     return response;
                 }
 
@@ -86,20 +85,20 @@ namespace financing_api.Services.PlaidService
             return response;
         }
 
+        // Exchange publicToken for accessToken
         public async Task<ServiceResponse<string>> PublicTokenExchange(string publicToken)
         {
             ServiceResponse<string> response = new();
 
             try
             {
-                // Exchange publicToken for accessToken
-                var exchangeResponse = _plaidApi.PublicTokenExchangeRequest(publicToken);
+                var exchangeResponse = _plaidDataAccess.PublicTokenExchangeRequest(publicToken);
 
-                // Save accessToken to SQL DB
-                var user = Utilities.GetCurrentUser(_context, _httpContextAccessor);
+                var user = await _userDataAccess.GetCurrentUser();
+
                 user.AccessToken = exchangeResponse.Result.AccessToken;
 
-                await _context.SaveChangesAsync();
+                _userDataAccess.SaveContextAsync();
 
                 response.Data = exchangeResponse.Result.AccessToken;
             }

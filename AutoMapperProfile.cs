@@ -16,6 +16,9 @@ namespace financing_api
         public AutoMapperProfile()
         {
             CreateMap<User, LoadUserDto>();
+            CreateMap<User, RegisterUserDto>();
+            CreateMap<RegisterUserDto, User>();
+            CreateMap<RegisterUserDto, LoadUserDto>();
             CreateMap<AddRecurringDto, Recurring>();
             CreateMap<Recurring, RecurringDto>();
             CreateMap<RecurringDto, Recurring>();
