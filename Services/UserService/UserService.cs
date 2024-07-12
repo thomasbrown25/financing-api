@@ -47,6 +47,8 @@ namespace financing_api.Services.UserService
 
                 var loadedUser = await _userDataAccess.SaveUser(user);
 
+                var settings = await _userDataAccess.AddUserSettings(loadedUser.Id);
+
                 response.Data = new LoadUserDto();
                 response.Data = loadedUser;
                 response.Data.JWTToken = token;
@@ -160,8 +162,9 @@ namespace financing_api.Services.UserService
                 {
                     userSettings = await _userDataAccess.GetUserSettings(user.Id);
 
-                    if (userSettings is not null)
-                        response.Data = userSettings;
+                    userSettings ??= await _userDataAccess.AddUserSettings(user.Id);
+
+                    response.Data = userSettings;
                 }
             }
             catch (Exception ex)
@@ -183,11 +186,9 @@ namespace financing_api.Services.UserService
 
                 var user = await _userDataAccess.GetCurrentUser();
 
-                var userSettings = await _userDataAccess.GetUserSettings(user.Id);
+                var settings = await _userDataAccess.UpdateUserSettings(newSettings);
 
-                _userDataAccess.SaveContextAsync();
-
-                response.Data = userSettings;
+                response.Data = settings;
             }
             catch (Exception ex)
             {

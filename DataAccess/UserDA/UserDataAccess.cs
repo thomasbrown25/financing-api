@@ -6,7 +6,6 @@ using financing_api.DbLogger;
 using financing_api.Dtos.User;
 using financing_api.Dtos.UserSetting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace financing_api.DataAccess.UserDA
 {
@@ -45,6 +44,25 @@ namespace financing_api.DataAccess.UserDA
                 await _context.SaveChangesAsync();
 
                 return _mapper.Map<LoadUserDto>(user);
+            }
+            catch (Exception ex)
+            {
+                _logging.LogException(ex);
+                return null;
+            }
+        }
+
+        public async Task<LoadUserDto?> UpdateUser(LoadUserDto user)
+        {
+            try
+            {
+                var dbUser = _context.Users.FirstOrDefault(x => x.Email == user.Email);
+
+                _context.Entry(dbUser).CurrentValues.SetValues(user);
+
+                await _context.SaveChangesAsync();
+
+                return user;
             }
             catch (Exception ex)
             {
@@ -145,6 +163,33 @@ namespace financing_api.DataAccess.UserDA
             await _context.SaveChangesAsync();
         }
 
+
+        public async Task<SettingsDto> AddUserSettings(int userId)
+        {
+            var dbSettings = new UserSettings
+            {
+                UserId = userId
+            };
+
+            _context.UserSettings.Add(dbSettings);
+            await _context.SaveChangesAsync();
+
+            dbSettings = await _context.UserSettings.FirstOrDefaultAsync(x => x.UserId == userId);
+
+            return _mapper.Map<SettingsDto>(dbSettings);
+        }
+
+        public async Task<SettingsDto> UpdateUserSettings(SettingsDto settingsDto)
+        {
+            var dbSettings = await _context.UserSettings.FirstOrDefaultAsync(x => x.UserId == settingsDto.UserId);
+
+            _context.Entry(dbSettings).CurrentValues.SetValues(settingsDto);
+
+            await _context.SaveChangesAsync();
+
+            return settingsDto;
+        }
+
         public async Task<SettingsDto> GetUserSettings(int userId)
         {
             var dbSettings = await _context.UserSettings
@@ -152,6 +197,7 @@ namespace financing_api.DataAccess.UserDA
 
             return _mapper.Map<SettingsDto>(dbSettings);
         }
+
 
         private bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
         {

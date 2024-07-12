@@ -16,6 +16,7 @@ namespace financing_api
         public AutoMapperProfile()
         {
             CreateMap<User, LoadUserDto>();
+            CreateMap<LoadUserDto, User>();
             CreateMap<User, RegisterUserDto>();
             CreateMap<RegisterUserDto, User>();
             CreateMap<RegisterUserDto, LoadUserDto>();

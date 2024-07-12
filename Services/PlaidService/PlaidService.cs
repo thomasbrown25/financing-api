@@ -98,9 +98,9 @@ namespace financing_api.Services.PlaidService
 
                 user.AccessToken = exchangeResponse.Result.AccessToken;
 
-                _userDataAccess.SaveContextAsync();
+                var loadedUser = await _userDataAccess.UpdateUser(user);
 
-                response.Data = exchangeResponse.Result.AccessToken;
+                response.Data = loadedUser.AccessToken;
             }
             catch (Exception ex)
             {

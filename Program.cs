@@ -14,7 +14,6 @@ using financing_api.Services.PlaidService;
 using financing_api.Services.TransactionsService;
 using financing_api.Services.AccountService;
 using financing_api.Shared;
-using financing_api.PlaidInterface;
 using financing_api.Services.CategoryService;
 using financing_api.Logger;
 using financing_api.DbLogger;
