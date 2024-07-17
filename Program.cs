@@ -134,7 +134,7 @@ services.AddCors(options =>
         builder =>
         {
             builder
-                .WithOrigins("http://localhost:3000", "https://localhost:3000", "http://localhost:5000", "https://localhost:5000", "https://financing-app-prod.azurewebsites.net")
+                .WithOrigins("http://localhost:3000", "https://localhost:3000", "http://localhost:5000", "https://localhost:5000", "https://financing-app-prod.azurewebsites.net", "https://happy-plant-0735b3510.5.azurestaticapps.net")
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         }
